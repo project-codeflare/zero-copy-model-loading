@@ -1,0 +1,15 @@
+# Packages relating to our core code
+ray
+transformers
+torch
+torchvision
+pandas
+numpy
+
+# Packages related to the JupyterLab environment. Note that
+# JupyterLab itelf is installed from conda-forge, because the packages
+# in PyPI for Mac are currently unreliable.
+nodejs
+ipywidgets
+matplotlib
+

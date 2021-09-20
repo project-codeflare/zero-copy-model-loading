@@ -1,3 +1,9 @@
+# Anaconda environment created by ./env.sh
+env
+
+# JupyterLab stuff
+.virtual_documents
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
