@@ -4,7 +4,7 @@ Code to accompany my Medium post, ["How to Load PyTorch Models 340 Times Faster
 with
 Ray"](https://medium.com/ibm-data-ai/how-to-load-pytorch-models-340-times-faster-with-ray-8be751a6944c).
 
-Notebooks:
+Notebooks in `notebooks` directory:
 * `zero_copy_loading.ipynb`: The notebook that was used when authoring the original blog post.
 
 Instructions to run:
@@ -24,6 +24,6 @@ Instructions to run:
    ```
    jupyter lab
    ```
-1. Open up the Jupyter notebook of your choice.
+1. Navigate to the `notebooks` directory and open up the Jupyter notebook of your choice.
 
 
