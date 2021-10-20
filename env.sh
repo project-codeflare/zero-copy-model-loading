@@ -63,8 +63,11 @@ conda install -y -c conda-forge jupyterlab-git
 ################################################################################
 # Install packages with pip
 
-# Pip dependencies are 
+# Pip dependencies are all in requirements.txt
 pip install -r requirements.txt
+
+# Install the local source tree in editable mode
+ pip install --editable .
 
 ################################################################################
 # Custom install steps

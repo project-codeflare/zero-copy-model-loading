@@ -1,5 +1,5 @@
 # Packages relating to our core code
-ray
+ray[serve]
 transformers
 torch
 torchvision
