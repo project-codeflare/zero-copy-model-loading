@@ -5,6 +5,7 @@ torch
 torchvision
 pandas
 numpy
+scipy
 
 # Packages related to the JupyterLab environment. Note that
 # JupyterLab itelf is installed from conda-forge, because the packages
