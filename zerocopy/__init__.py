@@ -18,4 +18,6 @@ A library of functions for performing zero-copy model loading of PyTorch models 
 inference on Ray.
 """
 
-from .rewrite import extract_tensors, replace_tensors, replace_tensors_direct
+from .invoke import (call_model, rewrite_pipeline)
+from .rewrite import (
+    extract_tensors, replace_tensors, replace_tensors_direct)

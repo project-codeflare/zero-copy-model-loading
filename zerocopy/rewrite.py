@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2021 IBM Corp.
+#  Copyright (c) 2021, 2022 IBM Corp.
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
@@ -13,11 +13,12 @@
 #  limitations under the License.
 #
 
-"""
-PyTorch model rewrites related to zero-copy model loading. These rewrites allow users to
-separate a model into its weights and graph, so that the weights can be loaded via a
-zero-copy mechanism such as `ray.get()`, then plugged into an empty version of the graph.
-"""
+'''
+PyTorch model rewrites related to zero-copy model loading. These rewrites allow
+users to separate a model into its weights and graph, so that the weights can
+be loaded via a zero-copy mechanism such as `ray.get()`, then plugged into an
+empty version of the graph.
+'''
 
 import copy
 import torch
@@ -25,7 +26,7 @@ from typing import Dict, List, Tuple
 
 
 def extract_tensors(m: torch.nn.Module) -> Tuple[torch.nn.Module, List[Dict]]:
-    """
+    '''
     Remove the tensors from a PyTorch model, convert them to NumPy
     arrays, and return the stripped model and tensors.
 
@@ -34,13 +35,14 @@ def extract_tensors(m: torch.nn.Module) -> Tuple[torch.nn.Module, List[Dict]]:
     :type m: torch.nn.Module
 
     :returns: A tuple with two elements:
-
-        * A deep copy of `m` in which all weight tensors have been replaced by `None`
-        * The tensors that were removed from the copy of `m`, encoded as a list of
-          dictionaries. Each dictionary holds the tensors associated with a single
-          :class:`torch.nn.Module` in the model's graph, indexed by parameter name.
-          The dictionaries occur in the order returned by :func:`m.named_modules`
-    """
+              * A deep copy of `m` in which all weight tensors have been
+                replaced by `None`
+              * The tensors that were removed from the copy of `m`, encoded as
+                a list of dictionaries. Each dictionary holds the tensors
+                associated with a single :class:`torch.nn.Module` in the
+                model's graph, indexed by parameter name. The dictionaries 
+                occur in the order returned by :func:`m.named_modules`
+    '''
     tensors = []
     for _, module in m.named_modules():
         # Store the tensors in Python dictionaries
@@ -52,7 +54,7 @@ def extract_tensors(m: torch.nn.Module) -> Tuple[torch.nn.Module, List[Dict]]:
             name: torch.clone(buf).detach().numpy()
             for name, buf in module.named_buffers(recurse=False)
         }
-        tensors.append({"params": params, "buffers": buffers})
+        tensors.append({'params': params, 'buffers': buffers})
 
     # Make a copy of the original model and strip all tensors and
     # temporary buffers out of the copy.
@@ -69,7 +71,7 @@ def extract_tensors(m: torch.nn.Module) -> Tuple[torch.nn.Module, List[Dict]]:
 
 
 def replace_tensors(m: torch.nn.Module, tensors: List[Dict]):
-    """
+    '''
     The inverse operation of :func:`extract_tensors`. Restores the tensors that
     :func:`extract_tensors` stripped out of a  PyTorch model. This restore operation
     involves zero copying of data and results in a model that can be immediately
@@ -84,20 +86,20 @@ def replace_tensors(m: torch.nn.Module, tensors: List[Dict]):
         dictionaries. Each dictionary holds the tensors associated with a single
         :class:`torch.nn.Module` in the model's graph, indexed by parameter name.
         The dictionaries occur in the order returned by :func:`m.named_modules`
-    """
+    '''
     with torch.inference_mode():
         modules = [module for _, module in m.named_modules()]
         for module, tensor_dict in zip(modules, tensors):
             # There are separate APIs to set parameters and buffers.
-            for name, array in tensor_dict["params"].items():
+            for name, array in tensor_dict['params'].items():
                 module.register_parameter(
                     name, torch.nn.Parameter(torch.as_tensor(array)))
-            for name, array in tensor_dict["buffers"].items():
+            for name, array in tensor_dict['buffers'].items():
                 module.register_buffer(name, torch.as_tensor(array))
 
 
 def replace_tensors_direct(m: torch.nn.Module, tensors: List[Dict]):
-    """
+    '''
     A version of :func:`replace_tensors` that takes a faster but slightly dangerous
     shortcut.
 
@@ -119,14 +121,15 @@ def replace_tensors_direct(m: torch.nn.Module, tensors: List[Dict]):
         dictionaries. Each dictionary holds the tensors associated with a single
         :class:`torch.nn.Module` in the model's graph, indexed by parameter name.
         The dictionaries occur in the order returned by :func:`m.named_modules`
-    """
+    '''
     with torch.inference_mode():
         modules = [module for _, module in m.named_modules()]
         for module, tensor_dict in zip(modules, tensors):
             # There are separate APIs to set parameters and buffers.
-            for name, array in tensor_dict["params"].items():
+            for name, array in tensor_dict['params'].items():
                 # Super fast, somewhat risky version avoids
                 # wrapping parameters in Parameters objects.
                 module._parameters[name] = torch.as_tensor(array)
-            for name, array in tensor_dict["buffers"].items():
+            for name, array in tensor_dict['buffers'].items():
                 module.register_buffer(name, torch.as_tensor(array))
+
