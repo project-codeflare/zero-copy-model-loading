@@ -1,6 +1,6 @@
 # zero-copy-model-loading
 
-Code to accompany my Medium post, ["How to Load PyTorch Models 340 Times Faster
+Code to accompany the Medium post, ["How to Load PyTorch Models 340 Times Faster
 with
 Ray"](https://medium.com/ibm-data-ai/how-to-load-pytorch-models-340-times-faster-with-ray-8be751a6944c).
 
