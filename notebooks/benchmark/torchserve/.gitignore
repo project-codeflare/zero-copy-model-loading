@@ -1,0 +1,7 @@
+# Ignore directories of generated TorchServe model packages
+generate
+intent
+qa
+sentiment
+model_store
+
