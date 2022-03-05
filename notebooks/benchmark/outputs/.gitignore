@@ -1,5 +1,4 @@
-# Ignore everything
-*
+# Ignore large files for now.
+baseline.csv
+zerocopy.csv
 
-# ...except this file
-!.gitignore

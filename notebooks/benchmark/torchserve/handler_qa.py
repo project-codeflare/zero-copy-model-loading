@@ -4,9 +4,12 @@ import logging
 from typing import Any, List
 
 from ts.torch_handler.base_handler import BaseHandler
-import scipy.special
+
+import torch
 import transformers
 
+# Disable intra-op parallelism early to prevent silly warning messages
+torch.set_num_threads(1)
 
 logger = logging.getLogger(__name__)
 
@@ -26,15 +29,16 @@ def _get_input_record(request: Any, field_names: List[str]) -> str:
     # TorchServe helpfully gives you the raw binary data of the request.
     # Drill down to the requested parts and decode strings as needed.
     input_json = json.loads(request['body'].decode('utf-8'))
-    
+
     if not isinstance(input_json, dict):
         raise ValueError(f'Request data {request} of type {type(request)} '
                          f'is not a JSON record.')
     for key in field_names:
         if key not in input_json:
             raise ValueError(f'Request data {request} of type {type(request)} '
-                             f'does not contain required key "{key}"')   
-    return { key: input_json[key] for key in field_names }
+                             f'does not contain required key "{key}"')
+    return {key: input_json[key] for key in field_names}
+
 
 class QAHandler(BaseHandler):
     '''
@@ -63,10 +67,10 @@ class QAHandler(BaseHandler):
         properties = context.system_properties
         model_dir = properties.get('model_dir')
 
-        # Use Huggingface's loading code instead of calling Module.load_state_dict()
-        # like the base class does.
-        # To load a pipeline saved with save_pretrained(), you pass the location 
-        # of the directory as a the `model` argument to `pipeline()`.
+        # Use Huggingface's loading code instead of calling
+        # Module.load_state_dict() like the base class does.
+        # To load a pipeline saved with save_pretrained(), you pass the
+        # location of the directory as a the `model` argument to `pipeline()`.
         self.pipeline = transformers.pipeline(
             'question-answering', model=model_dir)
         self.pipeline.model.eval()  # Just in case
@@ -97,18 +101,17 @@ class QAHandler(BaseHandler):
         # [{ 'question': '...', 'context': '...' }, ... ]
         # where the outer list is `data` and the inner elements are raw request
         # objects.
-        
+
         # Start by parsing the JSON in each request.
         json_records = [
             _get_input_record(request, ('question', 'context'))
             for request in data
         ]
-        
-        
+
         # The preprocess method only works on example objects, so the input
         # needs to go through a second layer of conversion.
         samples = [self.pipeline.create_sample(**r) for r in json_records]
-        
+
         # The preprocess method produces a generator for each sample. The generator
         # produces a batch.  Leave each batch as a generator.
         return [self.pipeline.preprocess(s) for s in samples]
@@ -153,4 +156,4 @@ class QAHandler(BaseHandler):
             output.
         '''
         return [self.pipeline.postprocess(o) for o in inference_output]
-    
+

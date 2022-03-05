@@ -1,8 +1,11 @@
 # Packages relating to our core code
+requests
 ray[serve]
 transformers
 torch
 torchvision
+torchserve
+torch-model-archiver
 pandas
 numpy
 scipy

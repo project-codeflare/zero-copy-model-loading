@@ -4,9 +4,13 @@ import logging
 from typing import Any, List
 
 from ts.torch_handler.base_handler import BaseHandler
+
 import scipy.special
+import torch
 import transformers
 
+# Disable intra-op parallelism early to prevent silly warning messages
+torch.set_num_threads(1)
 
 logger = logging.getLogger(__name__)
 
@@ -64,13 +68,14 @@ class SentimentHandler(BaseHandler):
         properties = context.system_properties
         model_dir = properties.get('model_dir')
 
-        # Use Huggingface's loading code instead of calling Module.load_state_dict()
-        # like the base class does.
+        # Use Huggingface's loading code instead of calling
+        # Module.load_state_dict() like the base class does.
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(model_dir)
         self.model = (transformers.AutoModelForSequenceClassification
                       .from_pretrained(model_dir))
 
         self.model.eval()
+
 
         logger.info(
             f'Transformer model from path {model_dir} loaded successfully.'

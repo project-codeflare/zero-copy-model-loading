@@ -2,7 +2,12 @@ import json
 import logging
 
 from ts.torch_handler.base_handler import BaseHandler
+
+import torch
 import transformers
+
+# Disable intra-op parallelism early to prevent silly warning messages
+torch.set_num_threads(1)
 
 
 logger = logging.getLogger(__name__)
@@ -76,6 +81,7 @@ class IntentHandler(BaseHandler):
         logger.info(
             f'Transformer model from path {model_dir} loaded successfully.'
         )
+
 
         self.initialized = True
 

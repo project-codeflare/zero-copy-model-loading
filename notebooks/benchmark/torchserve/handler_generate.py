@@ -4,9 +4,12 @@ import logging
 from typing import Any, List
 
 from ts.torch_handler.base_handler import BaseHandler
-import scipy.special
+
+import torch
 import transformers
 
+# Disable intra-op parallelism early to prevent silly warning messages
+torch.set_num_threads(1)
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +38,7 @@ def _get_input_record(request: Any, field_names: List[str]) -> str:
             raise ValueError(f'Request data {request} of type {type(request)} '
                              f'does not contain required key "{key}"')
     return {key: input_json[key] for key in field_names}
+
 
 class GenerateHandler(BaseHandler):
     '''
@@ -99,13 +103,13 @@ class GenerateHandler(BaseHandler):
         # [ { 'prompt_text': 'All your base are' }, ... ]
         # where the outer list is `data` and the inner elements are raw request
         # objects.
-        
+
         # Start by parsing the JSON in each request.
         json_records = [
             _get_input_record(request, ('prompt_text',))
             for request in data
         ]
-        
+
         # preprocess() takes a single input at a time, but we need to handle 
         # a batch at a time.
         return [self.pipeline.preprocess(**r) for r in json_records]
@@ -154,4 +158,4 @@ class GenerateHandler(BaseHandler):
         # postprocess() takes a single generation result at a time, but we
         # need to run a batch at a time.
         return [self.pipeline.postprocess(i) for i in inference_output]
-    
+
