@@ -56,12 +56,13 @@ def call_model(model_ref: ray.ObjectRef,
     with torch.no_grad():
         method = getattr(model_skeleton, method_name)
         return method(*args, **kwargs)
-    
+
+
 def rewrite_pipeline(pipeline: Any, method_names = ('__call__',)) -> Any:
     '''
     Rewrites PyTorch models in a model processing pipeline into Ray tasks
     that load the model using zero-copy model loading.
-    
+
     Current limitatations:
     * Only models that are stored in fields of the top-level object will be
       rewritten. This method does *not* recursively traverse child objects.
