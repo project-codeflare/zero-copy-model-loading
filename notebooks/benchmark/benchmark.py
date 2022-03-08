@@ -115,9 +115,53 @@ def call_model_rest(
     return status_code, start_time, end_time
 
 
-def gen_start_times(requests_per_sec: float, num_sec: int,
-                    seed: int) -> np.ndarray:
+def gen_start_times(num_users: float, num_sec: int, mean_think_time_sec: float,
+                    seed: int, ) -> np.ndarray:
     '''
+    Generate a trace of inference request start times. Divides the trace
+    into 1-second intervals.  Runs a discrete event simulation to determine
+    how many users send a request during each 1-second interval. Spreads
+    these requests evenly across the second.
+
+    :param num_users: Number of users to simulate
+    :param num_sec: Number of seconds of trace to generate
+    :param seed: Seed for the random number generator
+    :param mean_think_time_sec: Average of the Poisson-distributed wait times
+                                for the simulated users.
+
+    :returns: Numpy array of timestamps (starting from 0) for the requests
+     in the trace
+    '''
+    trace = []
+    rng = np.random.default_rng(seed)
+
+    # Compute the number of requests in each 1-second window.
+    req_per_window = np.zeros(num_sec, dtype=int)
+    for _ in range(num_users):
+        cur_time = rng.poisson(mean_think_time_sec)
+        while cur_time < num_sec:
+            req_per_window[cur_time] += 1
+            # Move forward by a random think time.
+            cur_time += rng.poisson(mean_think_time_sec)
+            
+    print(f'Requests per window:\n{req_per_window.tolist()}')
+
+    # Spread each of the requests in each window evenly across the window
+    for window_num in range(num_sec):
+        num_requests = req_per_window[window_num]
+        if num_requests > 0:
+            request_interval = 1.0 / num_requests
+            for i in range(num_requests):
+                trace.append(window_num + request_interval * i)
+
+    return np.array(trace)
+
+
+def gen_start_times_old(requests_per_sec: float, num_sec: int,
+                        seed: int) -> np.ndarray:
+    '''
+    Old code to generate start times trace.
+
     Generate a trace of inference request start times. Divides the trace
     into 1-second intervals. Each interval gets a number of requests drawn
     from a Poissson distribution. These requests are evenly spread through the
@@ -174,10 +218,11 @@ def gen_model_ids(lambda_: float, num_models: int, num_points: int,
 
 def run_single_benchmark(
         model_callback: Callable,
-        requests_per_sec: float,
+        num_users: float,
         num_sec: int,
         model_id_to_params: List[Tuple[str, str]],
         model_lambda: float = 0.3,
+        mean_think_time_sec: float = 10.0,
         seed: int = 42) -> pd.DataFrame:
     '''
     A single run of the benchmark.
@@ -191,15 +236,16 @@ def run_single_benchmark(
                            ``(result code, start time, end time)``.
                            Should have the signature
                            `f(model_type: str, language: str)`
-    :param requests_per_sec: Mean of the Poisson distribution that determines
-     the number of requests in each 1-second window.
-    :param num_sec: Seconds of traffic to generate at the requested rate.
+    :param num_users: Number of users to simulate.
+    :param num_sec: Seconds of traffic to generate.
      The actual session will extend past this window until all open requests
      have finished.
     :param model_lambda: Primary parameter of the truncated Poisson
      distribution used to split requests among models. Approximately
      equal to the mean of the distribution. The default value of 0.3 sends
      70% of traffic to model 0.
+    :param mean_think_time_sec: Average of the Poisson-distributed wait times
+                                for the simulated users.
     :param model_id_to_params: List that maps integer model ID to a tuple of
      (language code, model name) for each of the models.
     :param seed: Seed for the random number generator
@@ -209,7 +255,7 @@ def run_single_benchmark(
     # Preallocate the trace as a set of lists.
     benchmark_start_time = time.time()
     desired_start_times = (
-        gen_start_times(requests_per_sec, num_sec, seed)
+        gen_start_times(num_users, num_sec, mean_think_time_sec, seed)
         + benchmark_start_time)
     num_requests = desired_start_times.shape[0]
     model_nums = gen_model_ids(model_lambda, len(model_id_to_params),
@@ -280,8 +326,8 @@ def run_single_benchmark(
 def run_benchmarks(
         model_callback: Callable,
         num_sec: int = 60,
-        min_request_rate: int = 2,
-        request_rate_step: float = 0.5,
+        min_num_users: int = 10,
+        num_users_step: int = 5,
         max_failure_fraction: float = 0.6) -> pd.DataFrame:
     '''
     Perform multiple runs of the benchmark, increasing the request
@@ -295,13 +341,10 @@ def run_benchmarks(
     :param num_sec: Seconds of traffic to generate for each run.
                     The actual session will extend past this window
                     until all open requests have finished.
-    :param min_request_rate: Mean request rate for the first run of the
-                             benchmark.
-                             The actual request rate will follow a Poisson
-                             distribution with this mean.
-    :param request_rate_step: Amount by which the request rate increases
-                              with each subsequent run of the benchmark,
-                              in requests per second.
+    :param min_num_users: Minimum number of users to simulate
+    :param num_users_step: Amount by which the number of simulated users
+                           increases with each subsequent run of the 
+                           benchmark.
     :param max_failure_fraction: What fraction of failed web service calls
                                  the benchmark will tolerate per run before
                                  stopping the overall process.
@@ -311,21 +354,21 @@ def run_benchmarks(
               benchmark each request belongs to.
     '''
     to_concat = []
-    request_rate = min_request_rate
+    num_users = min_num_users
     failure_fraction = 0.
 
     while failure_fraction <= max_failure_fraction:
-        print(f'Running at {request_rate} requests/sec.')
+        print(f'Running with {num_users} simulated users.')
         times = run_single_benchmark(model_callback,
-                                     request_rate, num_sec,
+                                     num_users, num_sec,
                                      MODEL_ID_TO_PARAMS)
-        times.insert(0, 'request_rate', request_rate)
+        times.insert(0, 'num_users', num_users)
         to_concat.append(times)
         num_failures = sum(times['result_code'] != 200)
         num_requests = len(times.index)
         failure_fraction = num_failures / num_requests
         print(f' => {failure_fraction * 100.:0.1f}% failure rate')
-        request_rate += request_rate_step
+        num_users += num_users_step
 
     print(f'Stopping due to fraction of failures ({failure_fraction}) '
           f'exceeding allowable limit ({max_failure_fraction})')
