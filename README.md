@@ -7,7 +7,10 @@ Ray"](https://medium.com/ibm-data-ai/how-to-load-pytorch-models-340-times-faster
 ## Notebooks
 
 Notebooks can be found in the `notebooks` directory:
-* `zero_copy_loading.ipynb`: The notebook that was used when authoring the original blog post.
+* `zero_copy_loading.ipynb`: The notebook that was used when authoring the 
+  original blog post.
+* `benchmark/benchmark.ipynb`: The notebook that was used when authoring the
+  second post in the series.
 
 Instructions to run notebooks:
 1. Install `bash` and either `anaconda` or `miniconda`.
@@ -31,5 +34,9 @@ Instructions to run notebooks:
 
 ## Python Package
 
+This repository also contains the source code for the `zerocopy` library.
+`zerocopy` is a Python package that provides functions for implementing
+zero-copy model loading of PyTorch models on Ray.
 
+You can find the source code for the package inside the `package` directory.
 
