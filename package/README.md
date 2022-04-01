@@ -6,6 +6,7 @@ This directory contains the source code for the `zerocopy` Python package.
 
 1. `conda activate ../env`
 1. `python setup.py sdist bdist_wheel`
+1. (Optional test upload) `python -m twine upload --repository testpypi dist/*`
 1. `python -m twine upload dist/*`
 
 ## Testing
