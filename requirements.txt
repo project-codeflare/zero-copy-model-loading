@@ -18,3 +18,6 @@ nodejs
 ipywidgets
 matplotlib
 
+# Packages relating to publishing the `zerocopy` package
+twine
+
