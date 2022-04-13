@@ -82,10 +82,21 @@ conda activate ./${ENV_DIR}
 
 # We currently install JupyterLab from conda because the pip packages are 
 # broken for Anaconda environments with Python 3.6 and 3.8 on Mac, as of
-# April 2021.
-conda install -y -c conda-forge jupyterlab
+# April 2022.
+# Make sure that we install everything so that some pip dependency doesn't
+# pull in incompatible PyPI versions of a Jupyter package.
+conda install -y -c conda-forge jupyterlab \
+    ipywidgets \
+    jupyterlab-git \
+    jupyter-lsp \
+    jupyterlab-lsp \
+    jupyter-packaging \
+    jupyter-resource-usage
 conda install -y -c conda-forge/label/main nodejs
-conda install -y -c conda-forge jupyterlab-git
+
+# Rebuild local JupyterLab resources, because sometimes the conda-forge
+# packages don't come properly configured.
+jupyter lab build
 
 ################################################################################
 # Install packages with pip

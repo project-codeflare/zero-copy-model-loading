@@ -14,8 +14,6 @@ scipy
 # Packages related to the JupyterLab environment. Note that
 # JupyterLab itelf is installed from conda-forge, because the packages
 # in PyPI for Mac are currently unreliable.
-nodejs
-ipywidgets
 matplotlib
 
 # Packages relating to publishing the `zerocopy` package
