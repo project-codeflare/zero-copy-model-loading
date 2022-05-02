@@ -33,16 +33,43 @@ fi
 # END HACK
 ############################
 
-# Check whether the user specified an environment name.
-if [ "$1" != "" ]; then
-    ENV_DIR=$1
-else
-    ENV_DIR="env"
-fi
+Usage()
+{
+    echo "Usage ./env.sh [-d dir_name] [-p] [-h]"
+    echo "Where:"
+    echo "  -d dir_name specifies the location of the environment."
+    echo "     (default is ./env)"
+    echo "  -p means to install the zerocopy module from PyPI"
+    echo "     (default is to install from local source)"
+    echo "  -h prints this message" 
+}
+
+INSTALL_FROM_PYPI=false
+ENV_DIR="env"
+
+while getopts ":hpd:" option; do
+    case $option in
+        h) # display Help
+            Usage
+            exit;;
+        d) # Specify directory
+            ENV_DIR=$OPTARG;;
+        p) # Install from PyPI
+            INSTALL_FROM_PYPI=true;;
+        \?) # Invalid option
+            Usage
+            exit;;
+    esac
+done
+
 echo "Creating an Anaconda environment at ./${ENV_DIR}"
+if [ "$INSTALL_FROM_PYPI" = true ] ; then
+    echo "Will install zerocopy package from PyPI"
+else
+    echo "Will install zerocopy package from local source tree"
+fi
 
-
-# Remove the detrius of any previous runs of this script
+# Remove the detritus of any previous runs of this script
 rm -rf ./${ENV_DIR}
 
 # Note how we explicitly install pip on the line that follows. THIS IS VERY
@@ -55,10 +82,21 @@ conda activate ./${ENV_DIR}
 
 # We currently install JupyterLab from conda because the pip packages are 
 # broken for Anaconda environments with Python 3.6 and 3.8 on Mac, as of
-# April 2021.
-conda install -y -c conda-forge jupyterlab
+# April 2022.
+# Make sure that we install everything so that some pip dependency doesn't
+# pull in incompatible PyPI versions of a Jupyter package.
+conda install -y -c conda-forge jupyterlab \
+    ipywidgets \
+    jupyterlab-git \
+    jupyter-lsp \
+    jupyterlab-lsp \
+    jupyter-packaging \
+    jupyter-resource-usage
 conda install -y -c conda-forge/label/main nodejs
-conda install -y -c conda-forge jupyterlab-git
+
+# Rebuild local JupyterLab resources, because sometimes the conda-forge
+# packages don't come properly configured.
+jupyter lab build
 
 ################################################################################
 # Install packages with pip
@@ -66,8 +104,12 @@ conda install -y -c conda-forge jupyterlab-git
 # Pip dependencies are all in requirements.txt
 pip install -r requirements.txt
 
-# Install the local source tree in editable mode
- pip install --editable .
+if [ "$INSTALL_FROM_PYPI" = true ] ; then
+    pip install zerocopy
+else
+    # Install the local source tree for the `zerocopy` package in editable mode
+    pip install --editable ./package
+fi
 
 ################################################################################
 # Custom install steps
